@@ -69,3 +69,10 @@ QWidget#recordingNotch { border-top-left-radius: 0; border-top-right-radius: 0; 
 """
 
 STYLE += "QListWidget#navigation { background: #e9f2ff; border: 1px solid #cddff5; border-radius: 22px; padding: 8px 0; outline: none; }"
+
+STYLE += """
+QWidget#liveQuestionCard { background: #fffdf8; border: 1px solid #d9e4f1; border-radius: 16px; }
+QDialog#compactReview QLabel { background: transparent; }
+QDialog#compactReview QPushButton { padding: 8px 10px; }
+QDialog#compactReview QTextBrowser#questionReader { padding: 12px; }
+"""

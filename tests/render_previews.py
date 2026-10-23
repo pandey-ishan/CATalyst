@@ -8,8 +8,9 @@ from PySide6.QtGui import QFontDatabase,QFont
 from cat_analyst.ui import MainWindow,STYLE
 from cat_analyst.reader import QuestionReader
 from cat_analyst.core import Question,Session,SECTIONS
-app=QApplication([]);app.setQuitOnLastWindowClosed(False)
+app=QApplication([]);app.setQuitOnLastWindowClosed(False);app.setStyle('Fusion')
 QFontDatabase.addApplicationFont('C:/Windows/Fonts/segoeui.ttf')
+QFontDatabase.addApplicationFont('C:/Windows/Fonts/segoeuib.ttf')
 app.setFont(QFont('Segoe UI',10));app.setStyleSheet(STYLE)
 out=Path('_test_artifacts');out.mkdir(exist_ok=True)
 with tempfile.TemporaryDirectory() as directory:
@@ -25,7 +26,7 @@ with tempfile.TemporaryDirectory() as directory:
         scores=[20+mock*3,18+mock*2,21+mock*3]
         metrics={s:dict(score=v,percentile=80+mock*4) for s,v in zip(SECTIONS,[sum(scores)]+scores)}
         window.store.save_paper(session,f'test provider SIMCAT {mock+1:02d} (sample)',metrics)
-    window.refresh();window.show();app.processEvents()
+    window.refresh();window.statusBar().showMessage('Sample data | Local storage');window.show();app.processEvents()
     window.grab().save(str(out/'overview-redesign.png'))
     window.resize(1280,720)
     for _ in range(5):app.processEvents()
@@ -39,7 +40,7 @@ with tempfile.TemporaryDirectory() as directory:
                solution='Since 0.125 = 2^{-3}, the right-hand side is 2^{240}.\nTherefore x(x+1) = 240, giving x = 15.',
                correct_answer='C: 15',attempted='Unattempted',difficulty='Easy',topic='Algebra',seconds=9,
                warnings=['Superscripts recovered from layout; verify the mathematical expression'])
-    reader=QuestionReader([('test provider SIMCAT / illustrative preview',q)]);reader.resize(1060,900)
+    reader=QuestionReader([('Sample mock / illustrative preview',q)])
     reader.show();reader.reveal.setChecked(True);app.processEvents()
     reader.grab().save(str(out/'question-reader.png'))
     reader.close();window.close()

@@ -1,8 +1,10 @@
 ﻿"""Rounded notebook entries with native selection and keyboard navigation."""
 import html
-from PySide6.QtCore import Qt,Signal,QSize,QRectF
-from PySide6.QtGui import QColor,QPainter,QTextDocument,QAbstractTextDocumentLayout
-from PySide6.QtWidgets import QListWidget,QListWidgetItem,QStyledItemDelegate,QStyle,QAbstractItemView
+from PySide6.QtCore import Qt,Signal,QSize,QRectF,QRect
+from PySide6.QtGui import QColor,QPainter,QIcon,QTextDocument,QAbstractTextDocumentLayout
+from PySide6.QtWidgets import QWidget,QVBoxLayout,QHBoxLayout,QLabel,QToolButton,QListWidget,QListWidgetItem,QStyledItemDelegate,QStyle,QAbstractItemView
+
+from .icons import line_icon
 
 class EntryDelegate(QStyledItemDelegate):
     def document(self,item,width):
@@ -56,3 +58,43 @@ class EntryList(QListWidget):
         if count==0:self.clear()
     def resizeEvent(self,event):
         super().resizeEvent(event);self.scheduleDelayedItemsLayout()
+
+
+class CompactReviewList(EntryList):
+    def __init__(self,headers):
+        super().__init__(headers);self.actions=[]
+    def set_actions(self,actions):self.actions=actions
+    def set_rows(self,rows):
+        self.clear()
+        for row,values in enumerate(rows):
+            item=QListWidgetItem();item.setData(Qt.ItemDataRole.UserRole,(self.headers,list(values)));item.setSizeHint(QSize(100,154));self.addItem(item)
+            card=QWidget();card.setObjectName('liveQuestionCard')
+            layout=QVBoxLayout(card);layout.setContentsMargins(12,10,12,10);layout.setSpacing(5)
+            title=QLabel(f'Q{values[0]}  |  {values[1]}');title.setWordWrap(True);title.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents);layout.addWidget(title)
+            detail=QLabel(f'{values[2]}  |  {values[3]}  |  {values[4]}  |  {values[5]}');detail.setWordWrap(True);detail.setObjectName('subtitle');detail.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents);layout.addWidget(detail)
+            bottom=QHBoxLayout();state=QLabel(str(values[6]));state.setWordWrap(True);state.setObjectName('subtitle');state.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents);bottom.addWidget(state,1)
+            for name,icon,callback in self.actions:
+                action=QToolButton();action.setIcon(line_icon(icon));action.setToolTip(name);action.setAccessibleName(name);action.setFixedSize(30,30)
+                action.clicked.connect(lambda checked=False,r=row,fn=callback:fn(r));bottom.addWidget(action)
+            layout.addLayout(bottom);self.setItemWidget(item,card)
+
+
+class NavigationDelegate(QStyledItemDelegate):
+    def paint(self,painter,option,index):
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        rect=option.rect.adjusted(5,4,-5,-4)
+        selected=bool(option.state & QStyle.StateFlag.State_Selected)
+        hovered=bool(option.state & QStyle.StateFlag.State_MouseOver)
+        if selected or hovered:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor('#ffead7' if selected else '#dbeaff'))
+            painter.drawRoundedRect(rect,16,16)
+        icon=index.data(Qt.ItemDataRole.DecorationRole)
+        if isinstance(icon,QIcon):
+            target=QRect(0,0,20,20)
+            target.moveCenter(option.rect.center())
+            icon.paint(painter,target,Qt.AlignmentFlag.AlignCenter)
+        painter.restore()
+    def sizeHint(self,option,index):
+        return QSize(64,52)

@@ -3,7 +3,7 @@ import json
 import html
 from pathlib import Path
 from PySide6.QtCore import Qt, QRect, QPoint, Signal, QTimer, QDate, QSize
-from PySide6.QtGui import QColor, QPainter, QPen, QPixmap, QDoubleValidator, QRegion, QPainterPath
+from PySide6.QtGui import QIcon, QColor, QPainter, QPen, QPixmap, QDoubleValidator, QRegion, QPainterPath
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QTabWidget, QTableWidget, QTableWidgetItem, QHeaderView, QDialog,
     QFormLayout, QLineEdit, QPlainTextEdit, QComboBox, QCheckBox, QSpinBox, QDialogButtonBox,
@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
 from PySide6.QtCharts import QChart, QChartView, QLineSeries
 from .core import Question, Session, Store, TOPICS, SECTIONS, analytics, data_directory, today_local
 from .capture import CaptureWorker
-from .display import selection_region
+from .capture import selection_region
 
 from .theme import STYLE
 from .reader import QuestionReader
@@ -19,7 +19,9 @@ from .dashboard import Dashboard
 from .calendar_panel import MockCalendar
 from .icons import line_icon
 from .tables import ReadableTable
-from .navigation import NavigationDelegate
+from .reader import CompactDialog
+from .entries import CompactReviewList
+from .entries import NavigationDelegate
 
 
 def button(text, callback, primary=False):
@@ -148,20 +150,18 @@ class QuestionEditor(QDialog):
         self.accept()
 
 
-class ReviewWindow(QDialog):
+class ReviewWindow(CompactDialog):
     changed = Signal()
 
     def __init__(self, session: Session, parent=None):
-        super().__init__(parent)
+        super().__init__(parent,'Live review',440)
         self.session = session
         self.setWindowTitle('Live question review')
         self.viewer = None
-        self.resize(1150, 650)
-        layout = QVBoxLayout(self)
+        layout = self.content
         self.summary = label('')
         layout.addWidget(self.summary)
-        layout.addWidget(label('View a question without ending the session. Return to test provider to continue capture; edits are protected from OCR.', 'subtitle'))
-        self.table = table(['QA #', 'Topic', 'Difficulty', 'Attempt', 'Result', 'Time', 'Needs review'])
+        self.table = CompactReviewList(['QA #', 'Topic', 'Difficulty', 'Attempt', 'Result', 'Time', 'Needs review'])
         layout.addWidget(self.table)
         self.table.cellDoubleClicked.connect(self.view)
         self.table.set_actions([('View question','review',self.view),('Edit question','edit',self.edit),('Delete question','delete',self.delete)])
@@ -195,10 +195,20 @@ class ReviewWindow(QDialog):
         if self.viewer:
             self.viewer.close()
         self.viewer = QuestionReader([('Current recording', self.session.questions[n]) for n in self.numbers],
-                                     max(0, row), self)
+                                     max(0, row), self, image_records_loader=self.live_images)
         self.viewer.changed.connect(lambda q: self.changed.emit())
         self.viewer.changed.connect(lambda q: self.refresh())
         self.viewer.show()
+
+    def live_images(self,q):
+        owner=self.parent()
+        if owner is None or not hasattr(owner,'store'):return []
+        directory=owner.store.session_dir(self.session).resolve()
+        records=[]
+        for name in q.fallback_images+q.screenshots:
+            path=(directory/name).resolve()
+            if path.parent==directory and path.is_file():records.append((name,path.read_bytes()))
+        return records
 
     def edit(self, row, column=0):
         if row < 0 or row >= len(self.numbers):
@@ -466,6 +476,10 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(central)
         layout.setContentsMargins(12, 12, 12, 12)
         heading = QHBoxLayout()
+        logo = QLabel()
+        logo.setPixmap(QIcon(str(Path(__file__).parent / 'assets' / 'logo.svg')).pixmap(40, 40))
+        logo.setAccessibleName('CATalyst logo')
+        heading.addWidget(logo)
         titles = QVBoxLayout()
         titles.addWidget(label('CATalyst', 'title'))
         heading.addLayout(titles)
@@ -673,7 +687,8 @@ class MainWindow(QMainWindow):
         if getattr(self, 'saved_reader', None):
             self.saved_reader.close()
         self.saved_reader = QuestionReader([(name, q) for _, name, q in source], index, self,
-                                          lambda q: self.store.images(ids[id(q)], q.number))
+                                          lambda q: self.store.images(ids[id(q)], q.number),
+                                          image_records_loader=lambda q:self.store.image_records(ids[id(q)],q.number))
         self.saved_reader.changed.connect(changed)
         self.saved_reader.show()
 
@@ -700,7 +715,8 @@ class MainWindow(QMainWindow):
         instructions = label('Open test provider QA review on your primary display.\nSelect the question and review panel, including the question number.\nBrowse Statistics and Text Solution yourself; capture is automatic.\nKeep the floating toolbar outside the selected area. Pause whenever needed.')
         instructions.setWordWrap(True)
         layout.addWidget(instructions)
-        screenshots = QCheckBox('Also save screenshots with questions (off by default)')
+        layout.addWidget(label('Difficult question/solution text automatically gets a compressed image fallback.', 'subtitle'))
+        screenshots = QCheckBox('Also retain full capture screenshots (optional)')
         layout.addWidget(screenshots)
         controls = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         controls.accepted.connect(dialog.accept)
@@ -913,6 +929,10 @@ def run():
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setApplicationName('CATalyst')
+    app.setWindowIcon(QIcon(str(Path(__file__).parent / 'assets' / 'logo.svg')))
+    import ctypes
+    if sys.platform == 'win32':
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('CATalyst.Desktop')
     app.setStyle('Fusion')
     app.setStyleSheet(STYLE)
     window = MainWindow()

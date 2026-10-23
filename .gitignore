@@ -6,3 +6,6 @@ _test_artifacts/
 data/
 *.sqlite3*
 build-docs/
+build/
+dist/
+release/

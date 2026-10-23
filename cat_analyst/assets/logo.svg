@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+<title>CATalyst: a cat and a rising performance chart</title>
+<rect x="8" y="8" width="240" height="240" rx="64" fill="#faf7f0"/>
+<path d="M51 111V57Q51 45 62 52L98 77Q128 65 158 77L194 52Q205 45 205 57V111Q220 137 208 172Q193 211 128 215Q63 211 48 172Q36 137 51 111Z" fill="#e6f0ff" stroke="#31597b" stroke-width="10" stroke-linejoin="round"/>
+<path d="M76 158L111 128L139 145L180 106M158 106H180V128" fill="none" stroke="#cf702b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

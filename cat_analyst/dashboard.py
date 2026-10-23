@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QFrame,QSc
                                QPushButton,QTableWidget,QTableWidgetItem,QHeaderView,QAbstractItemView,QProgressBar,QGridLayout,QSizePolicy)
 from PySide6.QtCharts import QChart,QChartView,QLineSeries,QLegend
 from .core import SECTIONS,analytics
-from .insights import dashboard_insights
+from .core import dashboard_insights
 from .tables import ReadableTable
 from .icons import line_icon
 
@@ -108,7 +108,7 @@ class Dashboard(QScrollArea):
         self.responsive_groups.append((focus,[self.weak,self.slow,review],3))
         performance=QGridLayout();performance.setSpacing(14)
         self.performance={}
-        for title in ['QA accuracy','Attempt rate','Time per attempt','Time on incorrect answers']:
+        for title in ['QA accuracy','Attempt rate','Time per attempt','Avg time on incorrect answers']:
             metric=Metric(title);self.performance[title]=metric;performance.addWidget(metric,0,len(self.performance)-1)
         layout.addLayout(performance)
         self.responsive_groups.append((performance,list(self.performance.values()),4))
@@ -166,7 +166,7 @@ class Dashboard(QScrollArea):
         self.performance['QA accuracy'].update_value('\u2014' if summary['accuracy'] is None else f"{summary['accuracy']:.1f}%",f"{summary['graded']} graded attempts")
         self.performance['Attempt rate'].update_value('\u2014' if data['attempt_rate'] is None else f"{data['attempt_rate']:.1f}%",f"{summary['attempts']} / {data['known_attempts']} with known status")
         self.performance['Time per attempt'].update_value(duration(data['attempt_average']),f"{data['attempt_timed']} timed attempts")
-        self.performance['Time on incorrect answers'].update_value(duration(data['wrong_seconds']) if data['wrong_timed'] else '\u2014',f"{data['wrong_timed']} timed incorrect attempts")
+        self.performance['Avg time on incorrect answers'].update_value(duration(data['wrong_average']) if data['wrong_timed'] else '\u2014',f"{data['wrong_timed']} timed incorrect attempts")
         for key,value in [('QA accuracy',summary['accuracy']),('Attempt rate',data['attempt_rate'])]:
             self.performance[key].progress.setVisible(value is not None)
             self.performance[key].progress.setValue(round(value or 0))

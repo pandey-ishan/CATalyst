@@ -1,5 +1,5 @@
 ﻿import unittest
-from cat_analyst.display import primary_monitor, selection_region
+from cat_analyst.capture import primary_monitor, selection_region
 
 
 class DisplayMappingTests(unittest.TestCase):

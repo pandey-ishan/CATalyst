@@ -7,8 +7,8 @@ from unittest.mock import Mock
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QFontDatabase,QFont
 from cat_analyst.core import Question,Session,SECTIONS
-from cat_analyst.insights import dashboard_insights
-from cat_analyst.formatting import math_html,question_html
+from cat_analyst.core import dashboard_insights
+from cat_analyst.reader import math_html,question_html
 from cat_analyst.reader import QuestionReader
 from cat_analyst.ui import MainWindow,ReviewWindow,STYLE
 

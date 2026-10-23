@@ -77,6 +77,7 @@ class Question:
     locked: list[str] = field(default_factory=list)
     screenshots: list[str] = field(default_factory=list)
     raw_text: str = ''
+    fallback_images: list[str] = field(default_factory=list)
 
     def missing(self) -> list[str]:
         result = [label for key, label in [('text', 'question'), ('correct_answer', 'answer'),
@@ -108,7 +109,7 @@ class Question:
                 continue
             setattr(self, key, value)
         self.expected = max(self.expected, other.expected)
-        for key in ['views', 'warnings', 'screenshots']:
+        for key in ['views', 'warnings', 'screenshots', 'fallback_images']:
             values = getattr(self, key)
             values.extend(x for x in getattr(other, key) if x not in values)
         if other.raw_text and other.raw_text not in self.raw_text:
@@ -221,12 +222,14 @@ class Store:
                             (session.id, name.strip(), session.created, session.expected, json.dumps(metrics), test_date.isoformat()))
             for question in session.questions.values():
                 payload = asdict(question)
+                payload['fallback_images'] = []
                 payload['screenshots'] = []  # file paths are temporary, images live in SQLite
                 self.db.execute('INSERT INTO questions VALUES(?,?,?) ON CONFLICT(paper_id,number) '
                                 'DO UPDATE SET payload=excluded.payload',
                                 (session.id, question.number, json.dumps(payload)))
-                if session.keep_screenshots:
-                    for relative in question.screenshots:
+                retained = question.fallback_images + (question.screenshots if session.keep_screenshots else [])
+                if retained:
+                    for relative in dict.fromkeys(retained):
                         path = (directory / relative).resolve()
                         if path.parent != directory or path.suffix != '.png':
                             raise ValueError('Invalid screenshot path')
@@ -269,6 +272,9 @@ class Store:
                                             (paper_id, number))]
 
 
+    def image_records(self,paper_id,number):
+        return [(r[0],r[1]) for r in self.db.execute('SELECT name,image FROM screenshots WHERE paper_id=? AND number=? ORDER BY rowid',(paper_id,number))]
+
     def delete_paper(self, paper_id: str) -> None:
         with self.db:
             self.db.execute('DELETE FROM papers WHERE id=?', (paper_id,))
@@ -277,3 +283,27 @@ class Store:
         # Preserve expected count: removing a question makes coverage incomplete.
         with self.db:
             self.db.execute('DELETE FROM questions WHERE paper_id=? AND number=?', (paper_id, number))
+
+
+def dashboard_insights(questions):
+    summary=analytics(questions)[0]
+    topics=analytics(questions)[1:]
+    accuracy=sorted([r for r in topics if r['topic']!='Unclassified' and r['graded']>=3],
+                    key=lambda r:(r['accuracy'],-r['graded'],r['topic']))[:3]
+    timed_topics=[]
+    for topic in sorted({q.topic for q in questions if q.topic!='Unclassified'}):
+        timed=[q for q in questions if q.topic==topic and q.attempted=='Answered' and q.seconds is not None]
+        if len(timed)>=3:
+            timed_topics.append(dict(topic=topic,count=len(timed),average=sum(q.seconds for q in timed)/len(timed)))
+    timed_topics.sort(key=lambda r:(-r['average'],-r['count'],r['topic']))
+    known_attempts=sum(q.attempted in ('Answered','Unattempted') for q in questions)
+    incorrect=[q for q in questions if q.attempted=='Answered' and q.correctness=='Incorrect' and q.seconds is not None]
+    attempts_with_time=[q for q in questions if q.attempted=='Answered' and q.seconds is not None]
+    return dict(summary=summary,weak_accuracy=accuracy,slow_topics=timed_topics[:3],
+                known_attempts=known_attempts,attempt_rate=100*summary['attempts']/known_attempts if known_attempts else None,
+                wrong_seconds=sum(q.seconds for q in incorrect),wrong_timed=len(incorrect),
+                wrong_average=sum(q.seconds for q in incorrect)/len(incorrect) if incorrect else None,
+                attempt_average=sum(q.seconds for q in attempts_with_time)/len(attempts_with_time) if attempts_with_time else None,
+                attempt_timed=len(attempts_with_time),bookmarks=sum(q.bookmark for q in questions),
+                easy_misses=sum(q.difficulty=='Easy' and (q.attempted=='Unattempted' or (q.attempted=='Answered' and q.correctness=='Incorrect')) for q in questions),
+                needs_review=sum(bool(q.missing() or q.warnings) for q in questions))

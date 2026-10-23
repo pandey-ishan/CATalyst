@@ -54,7 +54,7 @@ def guess_topic(text: str) -> str:
     return next((topic for topic, pattern in patterns if re.search(pattern, text, re.I)), 'Unclassified')
 
 
-def parse_test provider(lines: list[Line], width: int = 0, height: int = 0) -> Question | None:
+def parse_test_provider(lines: list[Line], width: int = 0, height: int = 0) -> Question | None:
     if not lines:
         return None
     identity = None

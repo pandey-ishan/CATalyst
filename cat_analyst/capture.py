@@ -12,7 +12,7 @@ import cv2
 import mss
 import numpy as np
 from PySide6.QtCore import QThread, Signal
-from .parser import ocr_lines, parse_test provider
+from .parser import ocr_lines, parse_test_provider
 from .choice_marks import apply_choice_marks, readable_option_frame
 from .math_ocr import restore_superscripts
 
@@ -54,7 +54,7 @@ class CaptureWorker(QThread):
         result, _ = self._engine(ocr_frame)
         lines = ocr_lines(result)
         lines, math_warnings, original_math = restore_superscripts(ocr_frame, lines, self._engine)
-        question = parse_test provider(lines, frame.shape[1], frame.shape[0])
+        question = parse_test_provider(lines, frame.shape[1], frame.shape[0])
         if question is None:
             # Small counters can disappear at normal scale. Re-read just the
             # header locally, preserving its original coordinates and checks.
@@ -63,7 +63,7 @@ class CaptureWorker(QThread):
             retry,_=self._engine(cv2.resize(crop,None,fx=3,fy=3,interpolation=cv2.INTER_CUBIC))
             from .parser import Line
             enlarged=[Line(l.text,l.x/3,l.y/3,l.right/3,l.bottom/3,l.confidence) for l in ocr_lines(retry) if re.fullmatch(r'[0-9Il/|\s]+',l.text)]
-            question=parse_test provider(enlarged+lines,w,h)
+            question=parse_test_provider(enlarged+lines,w,h)
 
         if question is not None:
             apply_choice_marks(question, lines, frame)

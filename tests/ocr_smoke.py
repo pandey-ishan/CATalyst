@@ -7,7 +7,7 @@ from unittest.mock import patch
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from rapidocr_onnxruntime import RapidOCR
-from cat_analyst.parser import ocr_lines, parse_test provider
+from cat_analyst.parser import ocr_lines, parse_test_provider
 
 out = Path('_test_artifacts')
 out.mkdir(exist_ok=True)
@@ -44,7 +44,7 @@ with patch.object(socket.socket, 'connect', side_effect=AssertionError('OCR must
         image = fixture(is_solution)
         image.save(out / f'{name}.png')
         result, elapsed = engine(np.asarray(image))
-        question = parse_test provider(ocr_lines(result), image.width, image.height)
+        question = parse_test_provider(ocr_lines(result), image.width, image.height)
         if question is None:
             raise AssertionError(f'No question found: {result}')
         parsed.append(question)

@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from cat_analyst.core import Question, Session, Store, analytics, SECTIONS
-from cat_analyst.parser import Line, parse_test provider
+from cat_analyst.parser import Line, parse_test_provider
 
 
 def lines(*texts):
@@ -12,12 +12,12 @@ def lines(*texts):
 
 class ExtractionTests(unittest.TestCase):
     def test_statistics_and_solution_merge(self):
-        stats = parse_test provider(lines('01/22', 'A shopkeeper offers a discount. What is n?',
+        stats = parse_test_provider(lines('01/22', 'A shopkeeper offers a discount. What is n?',
             'Enter your response', '38', 'Backspace', 'Statistics Text Solution Video Solution',
             'Question Type A', 'Performance Parameter You Toppers Overall test takers',
             'Attempt Answered 87.5% 69.3%', 'Accuracy Incorrect 92.86% 82.65%',
             'Time Taken 3:10 1:28 2:40'))
-        solution = parse_test provider(lines('01/22', 'A shopkeeper offers a discount. What is n?',
+        solution = parse_test_provider(lines('01/22', 'A shopkeeper offers a discount. What is n?',
             'Enter your response', '38', 'Backspace', 'Correct Answer', '19',
             'Statistics Text Solution Video Solution', 'We have 2000n = 1900(n + 1).', 'Therefore n = 19.'))
         session = Session()
@@ -38,11 +38,11 @@ class ExtractionTests(unittest.TestCase):
         sample = lines('02/22', 'Find x.', 'Statistics Text Solution Video Solution', 'Question Type C')
         sample.extend([Line('Time Taken', 30, 200, 150, 220), Line('2:05', 300, 202, 350, 222),
                        Line('0:40', 440, 201, 490, 221), Line('1:20', 600, 200, 650, 220)])
-        self.assertEqual(parse_test provider(sample).seconds, 125)
-        self.assertEqual(parse_test provider(sample).difficulty, 'Hard')
+        self.assertEqual(parse_test_provider(sample).seconds, 125)
+        self.assertEqual(parse_test_provider(sample).difficulty, 'Hard')
 
     def test_no_identity_never_attaches_to_previous_question(self):
-        self.assertIsNone(parse_test provider(lines('Correct Answer', '19', 'Text Solution', 'n = 19')))
+        self.assertIsNone(parse_test_provider(lines('Correct Answer', '19', 'Text Solution', 'n = 19')))
 
     def test_manual_edits_and_conflicts(self):
         q = Question(1, text='Corrected text', locked=['text'], correct_answer='19')
@@ -64,7 +64,7 @@ class ExtractionTests(unittest.TestCase):
         self.assertEqual(q.warnings, [])
 
     def test_unattempted_is_not_an_incorrect_answer(self):
-        q = parse_test provider(lines('03/22', 'Find x.', 'Statistics Text Solution Video Solution',
+        q = parse_test_provider(lines('03/22', 'Find x.', 'Statistics Text Solution Video Solution',
                             'Question Type B', 'Attempt Not Answered 50%', 'Time Taken 0:05 1:00'))
         self.assertEqual(q.attempted, 'Unattempted')
         self.assertEqual(q.correctness, 'Unknown')

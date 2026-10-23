@@ -1,7 +1,7 @@
 import unittest
 import cv2
 import numpy as np
-from cat_analyst.parser import Line, parse_test provider
+from cat_analyst.parser import Line, parse_test_provider
 from cat_analyst.choice_marks import apply_choice_marks, green_ticks
 from cat_analyst.core import analytics
 
@@ -45,7 +45,7 @@ class ChoiceMarkTests(unittest.TestCase):
     def test_skipped_question_tick_is_answer_key_not_selected_response(self):
         frame, lines = example()
         mark(frame)
-        q = parse_test provider(lines, 800, 900)
+        q = parse_test_provider(lines, 800, 900)
         apply_choice_marks(q, lines, frame)
         self.assertEqual(q.correct_answer, 'C: 15')
         self.assertEqual(q.attempted, 'Unattempted')
@@ -59,14 +59,14 @@ class ChoiceMarkTests(unittest.TestCase):
             with self.subTest(scale=scale):
                 frame, lines=example(scale, combined=True)
                 mark(frame, scale=scale)
-                q=parse_test provider(lines)
+                q=parse_test_provider(lines)
                 apply_choice_marks(q, lines, frame)
                 self.assertEqual(q.correct_answer, 'C: 15')
 
     def test_answered_status_does_not_make_tick_the_users_choice(self):
         frame,lines=example(status='Answered')
         mark(frame)
-        q=parse_test provider(lines)
+        q=parse_test_provider(lines)
         apply_choice_marks(q, lines, frame)
         self.assertEqual(q.correct_answer, 'C: 15')
         self.assertEqual(q.selected_answer, '')
@@ -77,14 +77,14 @@ class ChoiceMarkTests(unittest.TestCase):
             with self.subTest(shape=shape):
                 frame,lines=example()
                 mark(frame,shape=shape)
-                q=parse_test provider(lines)
+                q=parse_test_provider(lines)
                 apply_choice_marks(q,lines,frame)
                 self.assertEqual(q.correct_answer,'')
 
     def test_tick_in_statistics_is_not_an_option(self):
         frame,lines=example()
         mark(frame,y=670)
-        q=parse_test provider(lines)
+        q=parse_test_provider(lines)
         apply_choice_marks(q,lines,frame)
         self.assertEqual(q.correct_answer,'')
 
@@ -92,7 +92,7 @@ class ChoiceMarkTests(unittest.TestCase):
         frame,lines=example()
         mark(frame,option=1)
         mark(frame,option=2)
-        q=parse_test provider(lines)
+        q=parse_test_provider(lines)
         apply_choice_marks(q,lines,frame)
         self.assertEqual(q.correct_answer,'')
         self.assertTrue(any('Multiple' in w for w in q.warnings))
@@ -101,13 +101,13 @@ class ChoiceMarkTests(unittest.TestCase):
         frame,lines=example()
         mark(frame)
         lines.append(Line('V',735,295,747,309))
-        q=parse_test provider(lines)
+        q=parse_test_provider(lines)
         apply_choice_marks(q,lines,frame)
         self.assertEqual(q.correct_answer,'C: 15')
 
     def test_text_only_no_tick_does_not_guess_answer(self):
         frame,lines=example()
-        q=parse_test provider(lines)
+        q=parse_test_provider(lines)
         apply_choice_marks(q,lines,frame)
         self.assertEqual(q.correct_answer,'')
 

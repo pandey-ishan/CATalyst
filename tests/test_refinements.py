@@ -11,7 +11,7 @@ from cat_analyst.core import Session,Question,SECTIONS,today_local
 from cat_analyst.ui import MainWindow,FloatingToolbar
 from cat_analyst.calendar_panel import MockCalendar
 from cat_analyst.choice_marks import apply_choice_marks,readable_option_frame
-from cat_analyst.parser import Line,parse_test provider
+from cat_analyst.parser import Line,parse_test_provider
 from tests.test_choice_marks import example,mark
 APP=QApplication.instance() or QApplication([])
 class RefinementTests(unittest.TestCase):
@@ -23,12 +23,12 @@ class RefinementTests(unittest.TestCase):
         normalized=readable_option_frame(frame)
         self.assertTrue((normalized[280,50]==255).all())
         self.assertTrue((frame[280,50]!=normalized[280,50]).any())
-        q=parse_test provider(lines);apply_choice_marks(q,lines,frame)
+        q=parse_test_provider(lines);apply_choice_marks(q,lines,frame)
         self.assertEqual(q.correct_answer,'C: 15');self.assertEqual(q.selected_answer,'')
     def test_stem_letter_does_not_break_option_list(self):
         frame,lines=example();mark(frame,option=1)
         lines.insert(2,Line('A sample question',67,75,350,95))
-        q=parse_test provider(lines);apply_choice_marks(q,lines,frame)
+        q=parse_test_provider(lines);apply_choice_marks(q,lines,frame)
         self.assertEqual(q.correct_answer,'B: 14')
     def test_calendar_tooltip_has_scores_and_multiple_tests(self):
         panel=MockCalendar();stamp=today_local().isoformat()
